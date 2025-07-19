@@ -1,6 +1,6 @@
 import logging
-from .usb_device import USBDevice, PortInfo
-from ..block_device_utils import find_block_device_for_usb
+from sdwire.backend.device.usb_device import USBDevice, PortInfo
+from sdwire.backend.block_device_utils import find_block_device_for_usb
 
 log = logging.getLogger(__name__)
 

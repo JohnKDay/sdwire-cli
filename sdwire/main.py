@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import logging
 import click
-from .backend import utils
-from .backend import detect
+from sdwire.backend import utils
+from sdwire.backend import detect
 
 
 @click.group()

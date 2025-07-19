@@ -1,9 +1,9 @@
 import sys
 import logging
 import click
-from .device.sdwire import SDWire
-from .device.sdwirec import SDWireC
-from . import detect
+from sdwire.backend.device.sdwire import SDWire
+from sdwire.backend.device.sdwirec import SDWireC
+from sdwire.backend import detect
 
 log = logging.getLogger(__name__)
 

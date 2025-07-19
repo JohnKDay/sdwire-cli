@@ -2,9 +2,9 @@ import logging
 from typing import List
 
 from sdwire import constants
-from .device.sdwire import SDWire, SDWIRE_GENERATION_SDWIRE3
-from .device.sdwirec import SDWireC
-from .device.usb_device import PortInfo
+from sdwire.backend.device.sdwire import SDWire, SDWIRE_GENERATION_SDWIRE3
+from sdwire.backend.device.sdwirec import SDWireC
+from sdwire.backend.device.usb_device import PortInfo
 
 
 import usb.core
