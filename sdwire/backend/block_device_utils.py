@@ -3,11 +3,14 @@ import platform
 import logging
 import subprocess
 import re
-from typing import Optional, List, Tuple
+from typing import Optional, List
 import usb.core
 import usb.util
+from ..constants import SDWIREC_VID, SDWIREC_PID
 
 log = logging.getLogger(__name__)
+
+
 
 
 def find_block_device_for_usb(usb_device: usb.core.Device) -> Optional[str]:
@@ -38,7 +41,7 @@ def _find_block_device_linux(usb_device: usb.core.Device) -> Optional[str]:
         product_id = getattr(usb_device, 'idProduct', 0)
 
         # Handle different device types
-        if vendor_id == 0x04e8 and product_id == 0x6001:
+        if vendor_id == SDWIREC_VID and product_id == SDWIREC_PID:
             # SDWireC: FTDI chip, need to find sibling mass storage device
             return _find_sdwirec_block_device_linux(usb_device)
         else:
@@ -178,20 +181,6 @@ def _is_mass_storage_device(device: usb.core.Device) -> bool:
         # Check device class
         device_class = getattr(device, 'bDeviceClass', None)
         if device_class == 8:  # Mass Storage class
-            return True
-
-        # Check for known mass storage VID:PID combinations
-        vendor_id = getattr(device, 'idVendor', 0)
-        product_id = getattr(device, 'idProduct', 0)
-
-        # Known mass storage devices commonly found in SDWire devices
-        known_mass_storage = [
-            (0x0424, 0x4050),  # SMSC Ultra Fast Media Reader
-            (0x0424, 0x2640),  # SMSC USB 2.0 Hub with Mass Storage
-        ]
-
-        if (vendor_id, product_id) in known_mass_storage:
-            log.debug(f"Found known mass storage device: {vendor_id:04x}:{product_id:04x}")
             return True
 
         # Check interface class for composite devices (if accessible)
