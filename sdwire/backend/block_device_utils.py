@@ -11,20 +11,21 @@ from sdwire.constants import SDWIREC_VID, SDWIREC_PID, SDWIRE3_VID, SDWIRE3_PID
 log = logging.getLogger(__name__)
 
 
-def find_block_device_for_usb(usb_device: usb.core.Device) -> Optional[str]:
-    """
-    Find the block device path for a given USB device using pyusb.
+
+
+def map_usb_device_to_block_device(usb_device: usb.core.Device) -> Optional[str]:
+    """Simple USB device to block device mapping using lsblk.
 
     Args:
         usb_device: USB device object from pyusb
 
     Returns:
-        Block device path (e.g., '/dev/sda', '/dev/disk2') or None if not found
+        Block device path (e.g., '/dev/sda') or None if not found
     """
     system = platform.system().lower()
 
     if system == 'linux':
-        return _find_block_device_linux(usb_device)
+        return _map_usb_to_block_device_linux_simple(usb_device)
     elif system == 'darwin':  # macOS
         return _find_block_device_macos(usb_device)
     else:
@@ -32,47 +33,9 @@ def find_block_device_for_usb(usb_device: usb.core.Device) -> Optional[str]:
         return None
 
 
-def _find_block_device_linux(usb_device: usb.core.Device) -> Optional[str]:
-    """Find block device on Linux using lsblk-based mapping."""
-    return _map_usb_to_block_device_linux(usb_device)
-
-
-def _is_mass_storage_device(device: usb.core.Device) -> bool:
-    """Check if a USB device is a mass storage device."""
+def _map_usb_to_block_device_linux_simple(usb_device: usb.core.Device) -> Optional[str]:
+    """Simple Linux USB device to block device mapping using lsblk."""
     try:
-        # Check device class
-        device_class = getattr(device, 'bDeviceClass', None)
-        if device_class == 8:  # Mass Storage class
-            return True
-
-        # Check interface class for composite devices (if accessible)
-        try:
-            config = device.get_active_configuration()
-            for interface in config:
-                if interface.bInterfaceClass == 8:  # Mass Storage interface class
-                    return True
-        except Exception as e:
-            log.debug(f"Could not access device interfaces (likely permission issue): {e}")
-            # If we can't access interfaces and it's a composite device,
-            # we'll assume it might be mass storage for SDWire hub topology
-            if device_class == 0:
-                log.debug("Composite device with inaccessible interfaces - treating as potential mass storage")
-                return True
-
-    except Exception:
-        pass
-
-    return False
-
-
-def _map_usb_to_block_device_linux(usb_device: usb.core.Device) -> Optional[str]:
-    """Map a USB device to its block device using lsblk."""
-    try:
-        usb_serial = getattr(usb_device, 'serial_number', None)
-        if not usb_serial:
-            log.debug("USB device has no serial number")
-            return None
-
         # Use lsblk to get USB block devices with serial numbers
         result = subprocess.run(
             ['lsblk', '-o', 'NAME,TRAN,SERIAL', '-J'],
@@ -89,24 +52,32 @@ def _map_usb_to_block_device_linux(usb_device: usb.core.Device) -> Optional[str]
             data = json.loads(result.stdout)
             blockdevices = data.get('blockdevices', [])
 
-            # First, try direct serial matching (works for SDWire3)
-            for device in blockdevices:
-                if device.get('tran') != 'usb':
-                    continue
+            # First, try direct serial matching
+            try:
+                usb_serial = getattr(usb_device, 'serial_number', None)
+                if usb_serial:
+                    for device in blockdevices:
+                        if device.get('tran') != 'usb':
+                            continue
 
-                device_serial = device.get('serial')
-                device_name = device.get('name')
+                        device_serial = device.get('serial')
+                        device_name = device.get('name')
 
-                if device_serial and device_name and device_serial in usb_serial:
-                    return f'/dev/{device_name}'
+                        if device_serial and device_name and device_serial in usb_serial:
+                            log.debug(f"Found block device by serial matching: {device_name}")
+                            return f'/dev/{device_name}'
 
-            # If direct matching failed, check if this is SDWireC FTDI device
-            vendor_id = getattr(usb_device, 'idVendor', 0)
-            product_id = getattr(usb_device, 'idProduct', 0)
-
-            if vendor_id == SDWIREC_VID and product_id == SDWIREC_PID:
-                log.debug("SDWireC FTDI device - looking for sibling mass storage")
-                return _find_sdwirec_sibling_block_device(usb_device, blockdevices)
+                    # If we can access serial but found no matching block device, return None
+                    log.debug("Serial accessible but no matching block device found")
+                    return None
+                else:
+                    # No serial available, use exclusion method (for permission issues)
+                    log.debug("No serial available, using exclusion method")
+                    return _find_block_device_by_exclusion_simple(blockdevices)
+            except Exception as e:
+                log.debug(f"Serial access failed, trying exclusion method: {e}")
+                # Fallback: Use exclusion method for devices without accessible serials
+                return _find_block_device_by_exclusion_simple(blockdevices)
 
         except (json.JSONDecodeError, KeyError) as e:
             log.debug(f"Failed to parse lsblk output: {e}")
@@ -117,46 +88,8 @@ def _map_usb_to_block_device_linux(usb_device: usb.core.Device) -> Optional[str]
     return None
 
 
-def _find_sdwirec_sibling_block_device(ftdi_device: usb.core.Device, blockdevices: list) -> Optional[str]:
-    """Find block device for SDWireC by finding sibling mass storage device."""
-    try:
-        # Find sibling mass storage devices
-        siblings = _find_sibling_mass_storage_devices(ftdi_device)
-
-        # Try serial number matching first
-        for sibling in siblings:
-            try:
-                sibling_serial = getattr(sibling, 'serial_number', None)
-                if sibling_serial:
-                    # Check if this sibling's serial matches any block device
-                    for block_device in blockdevices:
-                        if block_device.get('tran') != 'usb':
-                            continue
-
-                        block_serial = block_device.get('serial')
-                        block_name = block_device.get('name')
-
-                        if block_serial and block_name and block_serial in sibling_serial:
-                            log.debug(f"Found SDWireC sibling block device: {block_name}")
-                            return f'/dev/{block_name}'
-
-            except Exception as e:
-                log.debug(f"Error checking sibling serial: {e}")
-                continue
-
-        # If serial matching failed but we found siblings, try exclusion method
-        if siblings:
-            log.debug("SDWireC: Serial access denied, using exclusion method")
-            return _find_block_device_by_exclusion(blockdevices)
-
-    except Exception as e:
-        log.debug(f"Error finding SDWireC sibling block device: {e}")
-
-    return None
-
-
-def _find_block_device_by_exclusion(blockdevices: list) -> Optional[str]:
-    """Find SDWireC block device by excluding known SDWire3 devices."""
+def _find_block_device_by_exclusion_simple(blockdevices: list) -> Optional[str]:
+    """Find block device by excluding known SDWire3 devices."""
     try:
         # Get all USB block devices
         usb_blocks = []
@@ -190,7 +123,7 @@ def _find_block_device_by_exclusion(blockdevices: list) -> Optional[str]:
             is_sdwire3 = any(serial in block_serial for serial in sdwire3_serials if serial)
 
             if not is_sdwire3 and block_name:
-                log.debug(f"Found SDWireC block device by exclusion: {block_name}")
+                log.debug(f"Found block device by exclusion: {block_name}")
                 return f'/dev/{block_name}'
 
     except Exception as e:
@@ -199,44 +132,6 @@ def _find_block_device_by_exclusion(blockdevices: list) -> Optional[str]:
     return None
 
 
-def _find_sibling_mass_storage_devices(usb_device: usb.core.Device) -> List[usb.core.Device]:
-    """Find sibling mass storage devices under the same hub."""
-    siblings = []
-
-    try:
-        if not hasattr(usb_device, 'port_numbers'):
-            return siblings
-
-        device_ports = usb_device.port_numbers
-        if len(device_ports) < 2:  # Need at least hub + device port
-            return siblings
-
-        # Find all devices on the same bus
-        bus = usb_device.bus
-        all_devices = list(usb.core.find(find_all=True, bus=bus))
-
-        for candidate in all_devices:
-            if candidate == usb_device:
-                continue
-
-            if not hasattr(candidate, 'port_numbers'):
-                continue
-
-            candidate_ports = candidate.port_numbers
-
-            # Check if they share the same parent (same port path except last element)
-            if (len(candidate_ports) >= 2 and
-                len(device_ports) >= 2 and
-                candidate_ports[:-1] == device_ports[:-1]):
-
-                # Check if it's a mass storage device
-                if _is_mass_storage_device(candidate):
-                    siblings.append(candidate)
-
-    except Exception as e:
-        log.debug(f"Error finding sibling devices: {e}")
-
-    return siblings
 
 
 def _find_block_device_macos(usb_device: usb.core.Device) -> Optional[str]:

@@ -1,6 +1,6 @@
 import logging
 from sdwire.backend.device.usb_device import USBDevice, PortInfo
-from sdwire.backend.block_device_utils import find_block_device_for_usb
+from sdwire.backend.block_device_utils import map_usb_device_to_block_device
 
 log = logging.getLogger(__name__)
 
@@ -18,8 +18,13 @@ class SDWire(USBDevice):
         if self.usb_device:
             log.debug(f"SDWire3: Looking for block device for media controller {self.serial_string}")
             try:
-                self.__block_dev = find_block_device_for_usb(self.usb_device)
-                log.debug(f"SDWire3: Found block device: {self.__block_dev}")
+                storage_device = self.storage_device
+                if storage_device:
+                    self.__block_dev = map_usb_device_to_block_device(storage_device)
+                    log.debug(f"SDWire3: Found block device: {self.__block_dev}")
+                else:
+                    log.debug("SDWire3: No storage USB device available")
+                    self.__block_dev = None
             except Exception as e:
                 log.debug(f"SDWire3: Block device detection failed: {e}")
                 self.__block_dev = None
@@ -58,6 +63,17 @@ class SDWire(USBDevice):
     @property
     def block_dev(self):
         return self.__block_dev
+
+    @property
+    def storage_device(self):
+        """Return the USB device that corresponds to the storage interface.
+
+        For SDWire3, this is the same device we control (direct media controller).
+
+        Returns:
+            usb.core.Device: The USB device for storage, or None if not available
+        """
+        return self.usb_device
 
     def __str__(self):
         block_dev_str = self.block_dev if self.block_dev is not None else "None"
