@@ -6,6 +6,7 @@ including listing devices and switching between host and DUT modes.
 """
 import logging
 from typing import Optional
+import importlib.metadata
 import click
 from sdwire.backend import utils
 from sdwire.backend import detect
@@ -13,6 +14,7 @@ from sdwire.backend import detect
 
 @click.group()
 @click.option("--debug", required=False, is_flag=True, help="Enable debug output")
+@click.version_option(version=importlib.metadata.version("sdwire"), prog_name="sdwire")
 def main(debug: Optional[bool] = None) -> None:
     """SDWire CLI - Control SDWire devices from command line."""
     if debug:

@@ -11,13 +11,9 @@ import json
 import plistlib
 from typing import Optional
 import usb.core
-import usb.util
 from sdwire.constants import SDWIRE3_VID, SDWIRE3_PID
 
 log = logging.getLogger(__name__)
-
-
-
 
 def map_usb_device_to_block_device(usb_device: usb.core.Device) -> Optional[str]:
     """Map a USB device to its corresponding system block device path.
