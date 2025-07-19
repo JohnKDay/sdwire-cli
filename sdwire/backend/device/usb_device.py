@@ -1,4 +1,6 @@
 from collections import namedtuple
+from typing import Optional
+import usb.core
 
 
 PortInfo = namedtuple(
@@ -7,7 +9,7 @@ PortInfo = namedtuple(
 
 
 class USBDevice:
-    __port_info = None
+    __port_info: Optional[PortInfo] = None
 
 
     def __init__(self, port_info: PortInfo):
@@ -15,7 +17,7 @@ class USBDevice:
 
 
     @property
-    def usb_device(self):
+    def usb_device(self) -> Optional[usb.core.Device]:
         if self.__port_info:
             return self.__port_info.usb_device
         return None

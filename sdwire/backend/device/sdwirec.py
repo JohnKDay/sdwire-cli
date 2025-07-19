@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from pyftdi.ftdi import Ftdi
 import usb.core
 from sdwire.backend.device.usb_device import USBDevice, PortInfo
@@ -18,7 +19,7 @@ class SDWireC(USBDevice):
             log.debug(f"SDWireC: Looking for block device for FTDI chip {self.serial_string}")
             try:
                 storage_device = self.storage_device
-                if storage_device:
+                if storage_device is not None:
                     self.__block_dev = map_usb_device_to_block_device(storage_device)
                     log.debug(f"SDWireC: Found block device: {self.__block_dev}")
                 else:
@@ -31,19 +32,19 @@ class SDWireC(USBDevice):
             log.debug("SDWireC: No USB device available")
             self.__block_dev = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         block_dev_str = self.block_dev if self.block_dev is not None else "None"
         return f"{self.serial_string}\t[{self.product_string}::{self.manufacturer_string}]\t{block_dev_str}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
     @property
-    def block_dev(self):
+    def block_dev(self) -> Optional[str]:
         return self.__block_dev
 
     @property
-    def storage_device(self):
+    def storage_device(self) -> Optional[usb.core.Device]:
         """Return the USB device that corresponds to the storage interface.
 
         For SDWireC, this is a sibling mass storage device under the same hub,
@@ -60,13 +61,16 @@ class SDWireC(USBDevice):
             if not hasattr(self.usb_device, 'port_numbers'):
                 return None
 
-            device_ports = self.usb_device.port_numbers
+            device_ports = self.usb_device.port_numbers  # type: ignore[attr-defined]
             if len(device_ports) < 2:  # Need at least hub + device port
                 return None
 
             # Find all devices on the same bus
             bus = self.usb_device.bus
-            all_devices = list(usb.core.find(find_all=True, bus=bus))
+            devices_iter = usb.core.find(find_all=True, bus=bus)
+            if devices_iter is None:
+                return None
+            all_devices = list(devices_iter)
 
             for candidate in all_devices:
                 if candidate == self.usb_device:
@@ -75,15 +79,18 @@ class SDWireC(USBDevice):
                 if not hasattr(candidate, 'port_numbers'):
                     continue
 
-                candidate_ports = candidate.port_numbers
+                try:
+                    candidate_ports = candidate.port_numbers  # type: ignore[attr-defined]
+                except (AttributeError, usb.core.USBError):
+                    continue
 
                 # Check if they share the same parent (same port path except last element)
                 if (len(candidate_ports) >= 2 and
                     len(device_ports) >= 2 and
                     candidate_ports[:-1] == device_ports[:-1]):
 
-                    # Check if it's a mass storage device
-                    if self._is_mass_storage_device(candidate):
+                    # Check if it's a mass storage device (ensure candidate is Device, not Configuration)
+                    if isinstance(candidate, usb.core.Device) and self._is_mass_storage_device(candidate):
                         log.debug(f"SDWireC: Found sibling storage device: {candidate}")
                         return candidate
 
@@ -92,7 +99,7 @@ class SDWireC(USBDevice):
 
         return None
 
-    def _is_mass_storage_device(self, device):
+    def _is_mass_storage_device(self, device: usb.core.Device) -> bool:
         """Check if a USB device is a mass storage device."""
         try:
             # Check device class
@@ -119,13 +126,13 @@ class SDWireC(USBDevice):
 
         return False
 
-    def switch_ts(self):
+    def switch_ts(self) -> None:
         self._set_sdwire(1)
 
-    def switch_dut(self):
+    def switch_dut(self) -> None:
         self._set_sdwire(0)
 
-    def _set_sdwire(self, target):
+    def _set_sdwire(self, target: int) -> None:
         if not self.usb_device:
             log.error("USB device not available")
             import sys
