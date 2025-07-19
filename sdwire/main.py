@@ -29,6 +29,43 @@ def list() -> None:
         print(sdwire)
 
 
+@main.command()
+@click.argument("serial", required=True)
+def benchmark(serial: str) -> None:
+    """Run benchmark tests on the specified SDWire device.
+
+    SERIAL: Serial number of the SDWire device to benchmark.
+    Use 'sdwire list' to see available devices.
+    """
+    devices = detect.get_sdwire_devices()
+
+    # Find the device by serial number
+    target_device = None
+    for device in devices:
+        if device.serial_string == serial:
+            target_device = device
+            break
+
+    if target_device is None:
+        click.echo(f"Error: No SDWire device found with serial '{serial}'")
+        click.echo("Use 'sdwire list' to see available devices.")
+        import sys
+        sys.exit(1)
+
+    # Import and run benchmark
+    try:
+        from sdwire.backend.benchmark import run_benchmark
+        run_benchmark(target_device)
+    except ImportError:
+        click.echo("Error: Benchmark module not available")
+        import sys
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error running benchmark: {e}")
+        import sys
+        sys.exit(1)
+
+
 @main.group()
 @click.pass_context
 @click.option(
