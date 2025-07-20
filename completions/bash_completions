@@ -1,0 +1,159 @@
+#!/bin/bash
+
+# Bash completion for sdwire CLI
+#
+# This script provides bash completion for the sdwire command-line interface.
+# It supports completion for all commands, options, and device serial numbers.
+#
+# Installation:
+#   1. Source this file in your shell:
+#      source /path/to/bash_completions
+#   2. Or copy to bash completion directory:
+#      sudo cp bash_completions /etc/bash_completion.d/sdwire
+#      sudo cp bash_completions /usr/share/bash-completion/completions/sdwire
+#
+# Usage:
+#   After installation, type 'sdwire <TAB>' to see available completions.
+
+_sdwire_get_serials() {
+    # Get available SDWire device serials
+    # Returns a space-separated list of serial numbers
+    local serials
+
+    # Check if sdwire command is available
+    if ! command -v sdwire >/dev/null 2>&1; then
+        return 1
+    fi
+
+    # Get serials from sdwire list output, skipping header line
+    # Format: Serial\t\t\tProduct Info\t\tBlock Dev
+    serials=$(sdwire list 2>/dev/null | tail -n +2 | awk '{print $1}' 2>/dev/null | grep -v '^$')
+    echo "$serials"
+}
+
+_sdwire_completion() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # Global options available for all commands
+    local global_opts="--debug --version --help"
+
+    # Main commands
+    local commands="list benchmark switch"
+
+    # Switch subcommands (aliases: ts/host, dut/target)
+    local switch_commands="ts host dut target off"
+
+    case "${COMP_CWORD}" in
+        1)
+            # First argument - complete main commands and global options
+            opts="$commands $global_opts"
+            COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+            return 0
+            ;;
+        *)
+            # Handle completion based on previous words
+            case "${COMP_WORDS[1]}" in
+                list)
+                    # list command has no arguments, only global options
+                    if [[ $cur == -* ]]; then
+                        COMPREPLY=($(compgen -W "--help" -- "$cur"))
+                    fi
+                    return 0
+                    ;;
+                benchmark)
+                    case "$prev" in
+                        benchmark)
+                            # Complete with available serial numbers
+                            local serials
+                            serials=$(_sdwire_get_serials)
+                            if [[ -n "$serials" ]]; then
+                                COMPREPLY=($(compgen -W "$serials" -- "$cur"))
+                            fi
+                            return 0
+                            ;;
+                        *)
+                            # After serial is provided, only help option available
+                            if [[ $cur == -* ]]; then
+                                COMPREPLY=($(compgen -W "--help" -- "$cur"))
+                            fi
+                            return 0
+                            ;;
+                    esac
+                    ;;
+                switch)
+                    case "$prev" in
+                        switch)
+                            # Complete switch options and subcommands
+                            if [[ $cur == -* ]]; then
+                                COMPREPLY=($(compgen -W "-s --serial --help" -- "$cur"))
+                            else
+                                COMPREPLY=($(compgen -W "$switch_commands" -- "$cur"))
+                            fi
+                            return 0
+                            ;;
+                        -s|--serial)
+                            # Complete with available serial numbers for --serial option
+                            local serials
+                            serials=$(_sdwire_get_serials)
+                            if [[ -n "$serials" ]]; then
+                                COMPREPLY=($(compgen -W "$serials" -- "$cur"))
+                            fi
+                            return 0
+                            ;;
+                        ts|host|dut|target|off)
+                            # Switch subcommands have no additional arguments, only help
+                            if [[ $cur == -* ]]; then
+                                COMPREPLY=($(compgen -W "--help" -- "$cur"))
+                            fi
+                            return 0
+                            ;;
+                        *)
+                            # Check if we're already in a switch subcommand context
+                            local i
+                            local found_subcommand=0
+                            for ((i=2; i<COMP_CWORD; i++)); do
+                                case "${COMP_WORDS[i]}" in
+                                    ts|host|dut|target|off)
+                                        found_subcommand=1
+                                        break
+                                        ;;
+                                esac
+                            done
+
+                            if [[ $found_subcommand -eq 0 ]]; then
+                                # Still completing switch command options/subcommands
+                                if [[ $cur == -* ]]; then
+                                    COMPREPLY=($(compgen -W "-s --serial --help" -- "$cur"))
+                                else
+                                    COMPREPLY=($(compgen -W "$switch_commands" -- "$cur"))
+                                fi
+                            else
+                                # Inside a subcommand - only help available
+                                if [[ $cur == -* ]]; then
+                                    COMPREPLY=($(compgen -W "--help" -- "$cur"))
+                                fi
+                            fi
+                            return 0
+                            ;;
+                    esac
+                    ;;
+                *)
+                    # Default case - unknown command, offer global options
+                    if [[ $cur == -* ]]; then
+                        COMPREPLY=($(compgen -W "$global_opts" -- "$cur"))
+                    fi
+                    return 0
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+# Register the completion function for the sdwire command
+complete -F _sdwire_completion sdwire
+
+# Support for common alternative names (if any exist)
+# complete -F _sdwire_completion sdwire-cli
