@@ -84,14 +84,12 @@ def run_quick_benchmark(device):
     with patch('click.prompt') as mock_prompt, \
          patch('click.confirm') as mock_confirm:
 
-        # Mock SD card info prompts (using choice-based system)
+        # Mock SD card info prompts (using numbered menu system)
         mock_prompt.side_effect = [
-            "Class 10",      # SD card class choice
-            "32GB",          # Capacity choice
-            "Other",         # Brand choice
+            4,               # SD card class choice (Class 10)
+            5,               # Capacity choice (32GB)
+            13,              # Brand choice (Other)
             "Test Card",     # Custom brand input
-            "Skip",          # Expected read speed choice
-            "Skip",          # Expected write speed choice
             "small"          # Test size
         ]
 

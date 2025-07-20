@@ -136,29 +136,32 @@ The implementation includes comprehensive error handling:
 
 ## User Interface Improvements
 
-### Choice-Based SD Card Selection
+### Numbered Menu SD Card Selection
 
-The implementation includes a significant user experience improvement: instead of requiring users to manually type SD card specifications, the system now provides predefined choice menus with common options.
+The implementation includes a significant user experience improvement: instead of requiring users to manually type SD card specifications, the system now provides numbered menu choices with common options, making selection faster and more intuitive.
 
 #### Implementation Details
 
 ```python
 def collect_sdcard_info() -> Dict[str, str]:
-    """Collect SD card information from user through interactive choice menus."""
+    """Collect SD card information from user through interactive numbered menus."""
     
     # SD card class choices
     class_choices = [
         'Class 2', 'Class 4', 'Class 6', 'Class 10',
         'UHS-I U1', 'UHS-I U3', 'V10', 'V30', 'V60', 'V90',
-        'A1', 'A2', 'Other', 'Skip'
+        'A1', 'A2', 'Other'
     ]
     
-    # Interactive selection with fallback to custom input
-    class_selection = click.prompt(
-        "SD Card Class",
-        type=click.Choice(class_choices),
-        default='Other',
-        show_choices=True
+    # Display numbered options with colorful output
+    for i, choice in enumerate(class_choices, 1):
+        click.echo(f"  {click.style(str(i), fg='green')}: {choice}")
+    
+    # Numbered selection with fallback to custom input
+    class_idx = click.prompt(
+        click.style("Select SD Card Class", fg='white'),
+        type=click.IntRange(1, len(class_choices)),
+        default=len(class_choices)  # Default to "Other"
     )
 ```
 
@@ -166,48 +169,87 @@ def collect_sdcard_info() -> Dict[str, str]:
 
 | Category | Predefined Choices | Default |
 |----------|-------------------|---------|
-| **SD Card Class** | Class 2/4/6/10, UHS-I U1/U3, V10/V30/V60/V90, A1/A2 | Other |
-| **Capacity** | 2GB, 4GB, 8GB, 16GB, 32GB, 64GB, 128GB, 256GB, 512GB, 1TB | Other |
-| **Brand/Model** | SanDisk Ultra/Extreme/Pro, Samsung EVO/PRO, Kingston, Lexar, etc. | Other |
-| **Read Speed** | 10, 25, 50, 80, 100, 150, 200 MB/s | Skip |
-| **Write Speed** | 5, 10, 20, 30, 50, 80, 100 MB/s | Skip |
+| **SD Card Class** | Class 2/4/6/10, UHS-I U1/U3, V10/V30/V60/V90, A1/A2 | Other (13) |
+| **Capacity** | 2GB, 4GB, 8GB, 16GB, 32GB, 64GB, 128GB, 256GB, 512GB, 1TB | Other (11) |
+| **Brand/Model** | SanDisk Ultra/Extreme/Pro, Samsung EVO/PRO, Kingston, Lexar, etc. | Other (13) |
 
 #### User Experience Flow
 
 ```
-💾 SD Card Information Collection:
+💾 SD Card Information Collection
 Please select your SD card specifications:
 
-SD Card Class (Class 2, Class 4, Class 6, Class 10, UHS-I U1, UHS-I U3, V10, V30, V60, V90, A1, A2, Other, Skip) [Other]: Class 10
+📊 SD Card Class:
+  1: Class 2
+  2: Class 4
+  3: Class 6
+  4: Class 10
+  5: UHS-I U1
+  6: UHS-I U3
+  7: V10
+  8: V30
+  9: V60
+  10: V90
+  11: A1
+  12: A2
+  13: Other
+Select SD Card Class [13]: 4
 
-Capacity (2GB, 4GB, 8GB, 16GB, 32GB, 64GB, 128GB, 256GB, 512GB, 1TB, Other, Skip) [Other]: 64GB
+💾 Capacity:
+  1: 2GB
+  2: 4GB
+  3: 8GB
+  4: 16GB
+  5: 32GB
+  6: 64GB
+  7: 128GB
+  8: 256GB
+  9: 512GB
+  10: 1TB
+  11: Other
+Select Capacity [11]: 6
 
-Brand/Model (SanDisk Ultra, SanDisk Extreme, [...], Other, Skip) [Other]: SanDisk Ultra
-
-Expected Read Speed (10 MB/s, 25 MB/s, 50 MB/s, 80 MB/s, 100 MB/s, 150 MB/s, 200 MB/s, Other, Skip) [Skip]: Skip
-
-Expected Write Speed (5 MB/s, 10 MB/s, 20 MB/s, 30 MB/s, 50 MB/s, 80 MB/s, 100 MB/s, Other, Skip) [Skip]: Skip
+🏷️  Brand/Model:
+  1: SanDisk Ultra
+  2: SanDisk Extreme
+  3: SanDisk Extreme Pro
+  4: Samsung EVO Select
+  5: Samsung EVO Plus
+  6: Samsung PRO Plus
+  7: Kingston Canvas
+  8: Kingston Endurance
+  9: Lexar Professional
+  10: Transcend Premium
+  11: PNY Elite
+  12: Sony SF-G
+  13: Other
+Select Brand/Model [13]: 1
 ```
 
 #### Benefits
 
-- **Faster Input**: No need to remember exact specifications
+- **Faster Input**: Simple number selection instead of typing specifications
 - **Reduced Errors**: Eliminates typos in SD card class names
-- **Guided Selection**: Users see all available options
+- **Visual Clarity**: Numbered list makes options easy to scan
+- **Colorful Interface**: Color-coded output improves readability
 - **Flexibility**: "Other" option allows custom input when needed
-- **Optional Fields**: "Skip" option for unknown specifications
-- **Smart Defaults**: "Other" for hardware specs, "Skip" for performance expectations
+- **Smart Defaults**: Defaults to "Other" for maximum flexibility
+- **Streamlined Process**: Removed unnecessary read/write speed expectations
 
 #### Fallback Mechanisms
 
-When "Other" is selected:
+When "Other" is selected (option 13 for class, 11 for capacity, 13 for brand):
 ```python
-if class_selection == 'Other':
-    class_info = click.prompt("Enter custom SD card class", default="", show_default=False)
+if class_choices[class_idx - 1] == 'Other':
+    class_info = click.prompt(
+        click.style("Enter custom SD card class", fg='white'),
+        default="",
+        show_default=False
+    )
     class_info = class_info or 'Not specified'
 ```
 
-This ensures users can still input custom specifications not covered by the predefined choices.
+This ensures users can still input custom specifications not covered by the predefined numbered choices.
 
 ## Testing Strategy
 
@@ -271,22 +313,142 @@ if devices:
 
 ## Performance Analysis Features
 
-The benchmark provides intelligent performance analysis:
+The benchmark provides intelligent performance analysis based on SD card specifications rather than USB theoretical limits:
 
-### USB Speed Analysis
-- Compares actual speeds against theoretical USB limits
-- Identifies USB 2.0 vs USB 3.0 performance characteristics
-- Provides recommendations for connection optimization
+### SD Card Class Speed Analysis
+- Uses actual SD card class specifications for performance evaluation
+- Validates write speeds against minimum class requirements (e.g., Class 10 ≥ 10 MB/s)
+- Compares read speeds against typical class performance expectations
+- Provides accurate performance recommendations based on card capabilities
 
 ### SD Card Validation
 - Validates write speeds against SD card class specifications
-- Identifies performance bottlenecks
+- Detects underperforming cards or connection issues
+- Identifies when cards exceed their class specifications
 - Suggests hardware upgrades when appropriate
 
-### Read/Write Comparison
+### Performance Insights
 - Analyzes read vs write speed ratios
 - Identifies SD card or interface limitations
-- Provides performance insights
+- Provides USB connection bottleneck analysis as secondary factor
+- Offers specific recommendations for performance optimization
+
+### Colorful Reporting
+- Uses color-coded output for easy performance assessment
+- Green indicators for good performance
+- Yellow warnings for moderate issues
+- Red alerts for significant problems
+
+## SD Card Class Speed Implementation
+
+### Overview
+
+The benchmark system has been redesigned to use SD card class specifications as the primary performance baseline instead of USB theoretical speeds. This provides more accurate and meaningful performance analysis since SD cards are typically the limiting factor in storage performance.
+
+### SD Card Class Speed Database
+
+The system includes a comprehensive database of SD card class specifications:
+
+```python
+def _get_sdcard_class_speeds(card_class: str) -> Dict[str, float]:
+    """Get expected speeds for SD card class."""
+    class_speeds = {
+        'class 2': {'min_write_speed': 2, 'typical_read_speed': 10},
+        'class 4': {'min_write_speed': 4, 'typical_read_speed': 15},
+        'class 6': {'min_write_speed': 6, 'typical_read_speed': 20},
+        'class 10': {'min_write_speed': 10, 'typical_read_speed': 25},
+        'uhs-i u1': {'min_write_speed': 10, 'typical_read_speed': 104},
+        'uhs-i u3': {'min_write_speed': 30, 'typical_read_speed': 104},
+        'v10': {'min_write_speed': 10, 'typical_read_speed': 90},
+        'v30': {'min_write_speed': 30, 'typical_read_speed': 90},
+        'v60': {'min_write_speed': 60, 'typical_read_speed': 90},
+        'v90': {'min_write_speed': 90, 'typical_read_speed': 90},
+        'a1': {'min_write_speed': 10, 'typical_read_speed': 25},
+        'a2': {'min_write_speed': 10, 'typical_read_speed': 25},
+    }
+```
+
+### Class Speed Categories
+
+| Class | Min Write Speed | Typical Read Speed | Use Case |
+|-------|----------------|-------------------|----------|
+| **Class 2** | 2 MB/s | 10 MB/s | Basic storage |
+| **Class 4** | 4 MB/s | 15 MB/s | Standard definition video |
+| **Class 6** | 6 MB/s | 20 MB/s | High definition video |
+| **Class 10** | 10 MB/s | 25 MB/s | Full HD video recording |
+| **UHS-I U1** | 10 MB/s | 104 MB/s | Real-time broadcasts |
+| **UHS-I U3** | 30 MB/s | 104 MB/s | 4K video recording |
+| **V10** | 10 MB/s | 90 MB/s | Video Speed Class |
+| **V30** | 30 MB/s | 90 MB/s | 4K video recording |
+| **V60** | 60 MB/s | 90 MB/s | 8K video recording |
+| **V90** | 90 MB/s | 90 MB/s | 8K video recording |
+| **A1** | 10 MB/s | 25 MB/s | App performance |
+| **A2** | 10 MB/s | 25 MB/s | App performance |
+
+### Performance Analysis Algorithm
+
+The system uses a multi-tier analysis approach:
+
+#### Primary Analysis - SD Card Class Validation
+```python
+# Write speed analysis against SD card spec
+if write_speed >= min_write:
+    click.echo(f"✅ Write speed ({write_speed:.1f} MB/s) meets {card_class} specification (≥{min_write} MB/s)")
+elif write_speed >= min_write * 0.8:
+    click.echo(f"⚠️ Write speed ({write_speed:.1f} MB/s) is close to {card_class} specification (≥{min_write} MB/s)")
+else:
+    click.echo(f"❌ Write speed ({write_speed:.1f} MB/s) is below {card_class} specification (≥{min_write} MB/s)")
+```
+
+#### Secondary Analysis - USB Bottleneck Detection
+```python
+# USB bottleneck analysis
+if usb_speed_raw == SPEED_HIGH:  # USB 2.0
+    usb_limit = 60  # ~60 MB/s theoretical max
+    if read_speed > 45:
+        click.echo("⚠️ USB 2.0 may be limiting performance (consider USB 3.0)")
+```
+
+#### Tertiary Analysis - Performance Ratios
+```python
+# Write vs Read comparison
+write_ratio = write_speed / read_speed
+if write_ratio > 0.8:
+    click.echo(f"✅ Write/Read ratio is excellent ({write_ratio:.2f})")
+elif write_ratio > 0.5:
+    click.echo(f"⚠️ Write/Read ratio is moderate ({write_ratio:.2f})")
+```
+
+### Key Implementation Changes
+
+#### Removed Expected Speed Collection
+- No longer asks users for expected read/write speeds
+- Eliminates user guesswork and potential misinformation
+- Focuses on objective SD card class specifications
+
+#### Improved Accuracy
+- Uses manufacturer specifications rather than user expectations
+- Provides more reliable performance baselines
+- Enables accurate detection of underperforming cards
+
+#### Enhanced Recommendations
+- Specific suggestions based on SD card class limitations
+- USB connection optimization advice when relevant
+- Clear identification of performance bottlenecks
+
+### Example Analysis Output
+
+```
+📊 Performance Analysis:
+   SD Card Class: Class 10
+   ✅ Write speed (12.5 MB/s) meets Class 10 specification (≥10 MB/s)
+   ✅ Read speed (28.3 MB/s) is good for Class 10 (typical ~25 MB/s)
+   ✅ Write/Read ratio is excellent (0.78)
+
+💡 Recommendations:
+   • Performance meets SD card specifications
+   • Consider upgrading to UHS-I U3 for 4K video recording
+```
 
 ## Security Considerations
 

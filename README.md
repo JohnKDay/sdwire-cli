@@ -128,13 +128,54 @@ bdgrd_sdwirec_007       [sd-wire::SRPOL]       /dev/sda
    Vendor ID: 0x0bda
    Product ID: 0x0316
 
-💾 SD Card Information Collection:
+💾 SD Card Information Collection
 Please select your SD card specifications:
-SD Card Class (Class 2, Class 4, Class 6, Class 10, UHS-I U1, UHS-I U3, V10, V30, V60, V90, A1, A2, Other, Skip) [Other]: Class 10
-Capacity (2GB, 4GB, 8GB, 16GB, 32GB, 64GB, 128GB, 256GB, 512GB, 1TB, Other, Skip) [Other]: 64GB
-Brand/Model (SanDisk Ultra, SanDisk Extreme, SanDisk Extreme Pro, Samsung EVO Select, Samsung EVO Plus, Samsung PRO Plus, Kingston Canvas, Kingston Endurance, Lexar Professional, Transcend Premium, PNY Elite, Sony SF-G, Other, Skip) [Other]: SanDisk Ultra
-Expected Read Speed (10 MB/s, 25 MB/s, 50 MB/s, 80 MB/s, 100 MB/s, 150 MB/s, 200 MB/s, Other, Skip) [Skip]: Skip
-Expected Write Speed (5 MB/s, 10 MB/s, 20 MB/s, 30 MB/s, 50 MB/s, 80 MB/s, 100 MB/s, Other, Skip) [Skip]: Skip
+
+📊 SD Card Class:
+  1: Class 2
+  2: Class 4
+  3: Class 6
+  4: Class 10
+  5: UHS-I U1
+  6: UHS-I U3
+  7: V10
+  8: V30
+  9: V60
+  10: V90
+  11: A1
+  12: A2
+  13: Other
+Select SD Card Class [13]: 4
+
+💾 Capacity:
+  1: 2GB
+  2: 4GB
+  3: 8GB
+  4: 16GB
+  5: 32GB
+  6: 64GB
+  7: 128GB
+  8: 256GB
+  9: 512GB
+  10: 1TB
+  11: Other
+Select Capacity [11]: 6
+
+🏷️  Brand/Model:
+  1: SanDisk Ultra
+  2: SanDisk Extreme
+  3: SanDisk Extreme Pro
+  4: Samsung EVO Select
+  5: Samsung EVO Plus
+  6: Samsung PRO Plus
+  7: Kingston Canvas
+  8: Kingston Endurance
+  9: Lexar Professional
+  10: Transcend Premium
+  11: PNY Elite
+  12: Sony SF-G
+  13: Other
+Select Brand/Model [13]: 1
 
 📡 Switching device to HOST mode for benchmarking...
 ✅ Block device ready: /dev/sdb
@@ -175,18 +216,20 @@ Select test size (small/medium/large) [medium]: small
    Class: Class 10
    Capacity: 64GB
    Brand: SanDisk Ultra
-   Expected Read: Not specified
-   Expected Write: Not specified
 
 ⚡ Performance Results:
    Sequential Read:  45.30 MB/s
    Sequential Write: 23.50 MB/s
    Random Read:      12.80 MB/s
 
-📈 Performance Analysis:
-   ✅ Read speed is excellent for USB 2.0
-   ⚠️ Write speed is moderately slower than read speed
-   ✅ Write speed meets SD card class specification
+📊 Performance Analysis:
+   SD Card Class: Class 10
+   ✅ Write speed (23.50 MB/s) meets Class 10 specification (≥10 MB/s)
+   ✅ Read speed (45.30 MB/s) is good for Class 10 (typical ~25 MB/s)
+   ⚠️  Write/Read ratio is moderate (0.52)
+
+💡 Recommendations:
+   • Consider upgrading to USB 3.0 for better performance
 
 ✅ Benchmark completed successfully!
 ```

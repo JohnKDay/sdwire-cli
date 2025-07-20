@@ -171,12 +171,13 @@ class TestBenchmarkIntegration:
         """Test full benchmark with mocked user input."""
         # Mock all the prompts to avoid user interaction
         mock_prompt.side_effect = [
-            "Skip",      # SD card class choice
-            "Skip",      # Capacity choice
-            "Skip",      # Brand choice
-            "Skip",      # Expected read speed choice
-            "Skip",      # Expected write speed choice
-            "small"      # Test size
+            13,      # SD card class choice (Other)
+            "",      # Custom class input (empty)
+            11,      # Capacity choice (Other)
+            "",      # Custom capacity input (empty)
+            13,      # Brand choice (Other)
+            "",      # Custom brand input (empty)
+            "small"  # Test size
         ]
 
         for device in connected_devices:
@@ -260,13 +261,11 @@ class TestBenchmarkPerformance:
     def test_benchmark_performance_validation(self, mock_prompt, connected_devices):
         """Test that benchmark results are reasonable."""
         mock_prompt.side_effect = [
-            "Class 10",      # SD card class choice
-            "32GB",          # Capacity choice
-            "Other",         # Brand choice
-            "Test Card",     # Custom brand input
-            "Skip",          # Expected read speed choice
-            "Skip",          # Expected write speed choice
-            "small"          # Test size
+            4,           # SD card class choice (Class 10)
+            7,           # Capacity choice (32GB)
+            13,          # Brand choice (Other)
+            "Test Card", # Custom brand input
+            "small"      # Test size
         ]
 
         for device in connected_devices:
