@@ -15,24 +15,7 @@ class SDWire(USBDevice):
     def __init__(self, port_info: PortInfo, generation: int):
         super().__init__(port_info)
         self.generation = generation
-        # SDWire3 has direct access to media controller (no hub topology)
-        # The block device detection will look for block devices under this device
-        if self.usb_device:
-            log.debug(f"SDWire3: Looking for block device for media controller {self.serial_string}")
-            try:
-                storage_device = self.storage_device
-                if storage_device is not None:
-                    self.__block_dev = map_usb_device_to_block_device(storage_device)
-                    log.debug(f"SDWire3: Found block device: {self.__block_dev}")
-                else:
-                    log.debug("SDWire3: No storage USB device available")
-                    self.__block_dev = None
-            except Exception as e:
-                log.debug(f"SDWire3: Block device detection failed: {e}")
-                self.__block_dev = None
-        else:
-            log.debug("SDWire3: No USB device available")
-            self.__block_dev = None
+        self._update_block_device()
 
     def switch_ts(self) -> None:
         if not self.usb_device:
@@ -61,6 +44,23 @@ class SDWire(USBDevice):
                 "not able to switch to dut mode. Device might be already in dut mode, err: %s",
                 e,
             )
+
+    def _update_block_device(self) -> None:
+        """Update block device detection based on current device state."""
+        if not self.usb_device:
+            self.__block_dev = None
+            return
+
+        try:
+            storage_device = self.storage_device
+            if storage_device is not None:
+                self.__block_dev = map_usb_device_to_block_device(storage_device)
+                log.debug(f"SDWire3: Found block device: {self.__block_dev}")
+            else:
+                self.__block_dev = None
+        except Exception as e:
+            log.debug(f"SDWire3: Block device detection failed: {e}")
+            self.__block_dev = None
 
     @property
     def block_dev(self) -> Optional[str]:
