@@ -40,18 +40,34 @@ Commands:
 
 ## Installing
 
-Using pip
+### Using pip
 
 ```
 pip install sdwire
 ```
 
-Using apt
+### Using apt
 
 ```
 sudo add-apt-repository ppa:tchavadar/badgerd
 sudo apt install python3-sdwire
 ```
+
+### Using Portable Binary (Linux)
+
+For a standalone binary that doesn't require Python installation:
+
+1. Download or build the portable binary (see [BUILD_PORTABLE.md](BUILD_PORTABLE.md))
+2. Install libusb: `sudo apt-get install libusb-1.0-0`
+3. Copy to system path: `sudo cp sdwire /usr/local/bin/`
+4. Install udev rules: `sudo cp udev/90-sdwire.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules`
+
+To build the portable binary yourself:
+```bash
+./build_portable.sh
+```
+
+See [BUILD_PORTABLE.md](BUILD_PORTABLE.md) for detailed instructions.
 
 ## Listing SDWire Devices
 

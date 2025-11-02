@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{ include = "sdwire" }]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.10"
 click = "^8.1.7"
 pyusb = "^1.2.1"
 pyftdi = "^0.56.0"
