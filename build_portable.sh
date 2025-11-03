@@ -39,20 +39,24 @@ echo "Using Python version: $PYTHON_VERSION"
 echo ""
 
 # Install PyInstaller if not already installed
-if ! command -v pyinstaller &> /dev/null; then
+echo "Ensuring PyInstaller is installed..."
+if ! python3 -c "import PyInstaller" &> /dev/null; then
     echo "Installing PyInstaller..."
-    pip3 install pyinstaller
+    pip3 install --user pyinstaller
+    echo ""
+else
+    echo "PyInstaller is already installed."
     echo ""
 fi
 
 # Install dependencies
 echo "Installing dependencies..."
-pip3 install click pyusb pyftdi
+pip3 install --user click pyusb pyftdi
 echo ""
 
 # Install sdwire package in development mode
 echo "Installing sdwire package..."
-pip3 install -e .
+pip3 install --user -e .
 echo ""
 
 # Clean previous builds
@@ -62,7 +66,7 @@ echo ""
 
 # Build the portable binary
 echo "Building portable binary with PyInstaller..."
-pyinstaller --clean sdwire.spec
+python3 -m PyInstaller --clean sdwire.spec
 echo ""
 
 # Check if build was successful

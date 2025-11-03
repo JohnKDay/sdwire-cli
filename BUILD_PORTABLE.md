@@ -46,22 +46,22 @@ If you prefer to build manually:
 
 1. Install PyInstaller:
    ```bash
-   pip3 install pyinstaller
+   pip3 install --user pyinstaller
    ```
 
 2. Install dependencies:
    ```bash
-   pip3 install click pyusb pyftdi
+   pip3 install --user click pyusb pyftdi
    ```
 
 3. Install sdwire in development mode:
    ```bash
-   pip3 install -e .
+   pip3 install --user -e .
    ```
 
 4. Build the binary:
    ```bash
-   pyinstaller --clean sdwire.spec
+   python3 -m PyInstaller --clean sdwire.spec
    ```
 
 5. The binary will be created at `dist/sdwire`
@@ -117,6 +117,21 @@ sudo udevadm trigger
 Then unplug and replug the SDWire device.
 
 ## Troubleshooting
+
+### "pyinstaller: command not found" error
+
+If you get this error when running the build script, it means PyInstaller was installed to `~/.local/bin` which is not in your PATH. The build script has been updated to use `python3 -m PyInstaller` instead, which doesn't require PATH configuration.
+
+If you're running an older version of the script, either:
+1. Update to the latest build script, or
+2. Add `~/.local/bin` to your PATH:
+   ```bash
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
+3. Or run PyInstaller directly:
+   ```bash
+   python3 -m PyInstaller --clean sdwire.spec
+   ```
 
 ### "No backend available" error
 
