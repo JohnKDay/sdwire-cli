@@ -17,7 +17,7 @@ fi
 
 # Check for required system packages
 echo "Checking for required system packages..."
-REQUIRED_PACKAGES="libusb-1.0-0 python3 python3-pip"
+REQUIRED_PACKAGES="libusb-1.0-0 python3 python3-venv"
 MISSING_PACKAGES=""
 
 for pkg in $REQUIRED_PACKAGES; do
@@ -38,25 +38,41 @@ PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
 echo "Using Python version: $PYTHON_VERSION"
 echo ""
 
-# Install PyInstaller if not already installed
-echo "Ensuring PyInstaller is installed..."
-if ! python3 -c "import PyInstaller" &> /dev/null; then
-    echo "Installing PyInstaller..."
-    pip3 install --user pyinstaller
-    echo ""
+# Create / reuse a build virtualenv. Modern Debian/Ubuntu (PEP 668) blocks
+# pip from installing into the system Python, so we always work inside a venv.
+VENV_DIR="${VENV_DIR:-.build-venv}"
+if [ ! -f "$VENV_DIR/bin/activate" ]; then
+    if [ -d "$VENV_DIR" ]; then
+        echo "Removing incomplete virtualenv at $VENV_DIR..."
+        rm -rf "$VENV_DIR"
+    fi
+    echo "Creating build virtualenv at $VENV_DIR..."
+    if ! python3 -m venv "$VENV_DIR"; then
+        echo ""
+        echo "Error: 'python3 -m venv' failed. On Debian/Ubuntu install the venv package:"
+        echo "  sudo apt-get install python3-venv"
+        exit 1
+    fi
 else
-    echo "PyInstaller is already installed."
-    echo ""
+    echo "Reusing existing build virtualenv at $VENV_DIR."
 fi
+# shellcheck disable=SC1091
+source "$VENV_DIR/bin/activate"
+echo ""
 
-# Install dependencies
-echo "Installing dependencies..."
-pip3 install --user click pyusb pyftdi
+# Upgrade pip inside the venv so wheels resolve cleanly
+echo "Upgrading pip inside the virtualenv..."
+pip install --upgrade pip setuptools wheel
+echo ""
+
+# Install PyInstaller and runtime dependencies
+echo "Installing PyInstaller and dependencies..."
+pip install pyinstaller click pyusb pyftdi
 echo ""
 
 # Install sdwire package in development mode
 echo "Installing sdwire package..."
-pip3 install --user -e .
+pip install -e .
 echo ""
 
 # Clean previous builds
@@ -66,7 +82,7 @@ echo ""
 
 # Build the portable binary
 echo "Building portable binary with PyInstaller..."
-python3 -m PyInstaller --clean sdwire.spec
+pyinstaller --clean sdwire.spec
 echo ""
 
 # Check if build was successful
